@@ -1,6 +1,18 @@
 "use client";
-import Editor from "@/features/editor";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
-  return <Editor />;
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      router.replace("/projects");
+    } else {
+      router.replace("/login");
+    }
+  }, [router]);
+
+  return null;
 }

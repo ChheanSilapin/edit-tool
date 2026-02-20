@@ -35,7 +35,7 @@ interface ITimelineStore {
 
   sceneMoveableRef: React.RefObject<Moveable> | null;
   setSceneMoveableRef: (ref: React.RefObject<Moveable>) => void;
-  setState: (state: any) => Promise<void>;
+  setState: (state: Partial<ITimelineStore>) => Promise<void>;
   compositions: Partial<IComposition>[];
   setCompositions: (compositions: Partial<IComposition>[]) => void;
 

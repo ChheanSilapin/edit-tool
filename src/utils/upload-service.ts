@@ -20,49 +20,36 @@ export async function processFileUpload(
   uploadId: string,
   file: File,
   callbacks: UploadCallbacks
-): Promise<any> {
+): Promise<Record<string, unknown>> {
   try {
-    // Get presigned URL
-    const {
-      data: { uploads }
-    } = await axios.post(
-      "/api/uploads/presign",
-      {
-        userId: "PJ1nkaufw0hZPyhN7bWCP",
-        fileNames: [file.name]
-      },
-      {
-        headers: { "Content-Type": "application/json" }
-      }
-    );
+    // Upload file directly to local storage
+    const formData = new FormData();
+    formData.append("file", file);
 
-    const uploadInfo = uploads[0];
-
-    // Upload file with progress tracking
-    await axios.put(uploadInfo.presignedUrl, file, {
-      headers: { "Content-Type": uploadInfo.contentType },
+    const response = await axios.post("/api/uploads/local", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress: (progressEvent) => {
         const percent = Math.round(
           (progressEvent.loaded * 100) / (progressEvent.total || 1)
         );
         callbacks.onProgress(uploadId, percent);
       },
-      validateStatus: () => true
     });
 
-    // Construct upload data from uploadInfo
+    const { upload: uploadInfo } = response.data;
+
     const uploadData = {
       fileName: uploadInfo.fileName,
       filePath: uploadInfo.filePath,
-      fileSize: file.size,
+      fileSize: uploadInfo.fileSize,
       contentType: uploadInfo.contentType,
       metadata: { uploadedUrl: uploadInfo.url },
-      folder: uploadInfo.folder || null,
-      type: uploadInfo.contentType.split("/")[0],
-      method: "direct",
+      folder: null,
+      type: uploadInfo.type,
+      method: "local",
       origin: "user",
       status: "uploaded",
-      isPreview: false
+      isPreview: false,
     };
 
     callbacks.onStatus(uploadId, "uploaded");
@@ -77,7 +64,7 @@ export async function processUrlUpload(
   uploadId: string,
   url: string,
   callbacks: UploadCallbacks
-): Promise<any[]> {
+): Promise<Record<string, unknown>[]> {
   try {
     // Start with 10% progress
     callbacks.onProgress(uploadId, 10);
@@ -98,7 +85,7 @@ export async function processUrlUpload(
     callbacks.onProgress(uploadId, 50);
 
     // Construct upload data from uploads array
-    const uploadDataArray = uploads.map((uploadInfo: any) => ({
+    const uploadDataArray = uploads.map((uploadInfo: Record<string, string>) => ({
       fileName: uploadInfo.fileName,
       filePath: uploadInfo.filePath,
       fileSize: 0,
@@ -126,7 +113,7 @@ export async function processUpload(
   uploadId: string,
   upload: { file?: File; url?: string },
   callbacks: UploadCallbacks
-): Promise<any> {
+): Promise<Record<string, unknown> | Record<string, unknown>[]> {
   if (upload.file) {
     return await processFileUpload(uploadId, upload.file, callbacks);
   }
