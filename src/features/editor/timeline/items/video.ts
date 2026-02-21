@@ -208,39 +208,108 @@ class Video extends Trimmable {
   }
 
   // load fallback thumbnail, resize it and cache it
+  // Best practice: try as image first, then extract a frame from video
   private async loadFallbackThumbnail() {
     const fallbackThumbnail = this.previewUrl;
     if (!fallbackThumbnail) return;
 
-    return new Promise<void>((resolve) => {
+    // Try loading as image first (works for .webp, .jpg, .png preview URLs)
+    const imageLoaded = await this.tryLoadAsImage(fallbackThumbnail);
+    if (imageLoaded) return;
+
+    // If image failed (e.g. it's an .mp4 URL), extract a frame from the video
+    await this.extractFrameFromVideo(this.src || fallbackThumbnail);
+  }
+
+  private tryLoadAsImage(url: string): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
       const img = new Image();
       img.crossOrigin = "anonymous";
-      img.src = `${fallbackThumbnail}?t=${Date.now()}`;
+      img.src = `${url}?t=${Date.now()}`;
       img.onload = () => {
-        // Create a temporary canvas to resize the image
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        // Calculate new width maintaining aspect ratio
-        const aspectRatio = img.width / img.height;
-        const targetHeight = 40;
-        const targetWidth = Math.round(targetHeight * aspectRatio);
-        // Set canvas size and draw resized image
-        canvas.height = targetHeight;
-        canvas.width = targetWidth;
-        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-
-        // Create new image from resized canvas
-        const resizedImg = new Image();
-        resizedImg.src = canvas.toDataURL();
-        // Update aspect ratio and cache the resized image
-        this.aspectRatio = aspectRatio;
-        this.thumbnailWidth = targetWidth;
-        this.thumbnailCache.setThumbnail("fallback", resizedImg);
-        resolve();
+        this.cacheFallbackFromSource(img, img.width, img.height);
+        resolve(true);
+      };
+      img.onerror = () => {
+        resolve(false); // Not an image, try video extraction
       };
     });
+  }
+
+  private extractFrameFromVideo(videoUrl: string): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const video = document.createElement("video");
+      video.crossOrigin = "anonymous";
+      video.muted = true;
+      video.preload = "auto";
+      video.src = videoUrl;
+
+      const cleanup = () => {
+        video.removeAttribute("src");
+        video.load(); // Release resources
+      };
+
+      video.onloadeddata = () => {
+        // Seek to 1 second (or 0 if video is shorter)
+        video.currentTime = Math.min(1, video.duration || 0);
+      };
+
+      video.onseeked = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            cleanup();
+            resolve();
+            return;
+          }
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          this.cacheFallbackFromSource(canvas, canvas.width, canvas.height);
+        } catch (e) {
+          console.warn("Failed to extract video frame:", e);
+        }
+        cleanup();
+        resolve();
+      };
+
+      video.onerror = () => {
+        cleanup();
+        resolve(); // Silently fail so initialization can continue
+      };
+
+      // Timeout safety: resolve after 5s if video never loads
+      setTimeout(() => {
+        cleanup();
+        resolve();
+      }, 5000);
+    });
+  }
+
+  private cacheFallbackFromSource(
+    source: HTMLImageElement | HTMLCanvasElement | HTMLVideoElement,
+    sourceWidth: number,
+    sourceHeight: number
+  ) {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const aspectRatio = sourceWidth / sourceHeight;
+    const targetHeight = 40;
+    const targetWidth = Math.round(targetHeight * aspectRatio);
+
+    canvas.height = targetHeight;
+    canvas.width = targetWidth;
+    ctx.drawImage(source, 0, 0, targetWidth, targetHeight);
+
+    const resizedImg = new Image();
+    resizedImg.src = canvas.toDataURL();
+
+    this.aspectRatio = aspectRatio;
+    this.thumbnailWidth = targetWidth;
+    this.thumbnailCache.setThumbnail("fallback", resizedImg);
   }
 
   private generateTimestamps(startTime: number, count: number): number[] {
