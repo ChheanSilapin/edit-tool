@@ -39,3 +39,14 @@ export function useSceneTextVideos() {
     },
   });
 }
+
+export function useVideoProject(id?: string) {
+  return useQuery<VideoProject>({
+    queryKey: ["video-project", id],
+    queryFn: async () => {
+      const { data } = await apiClient.get(`/api/video-projects/${id}`);
+      return data;
+    },
+    enabled: !!id,
+  });
+}

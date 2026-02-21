@@ -12,7 +12,6 @@ import { ScrollArea } from "./ui/scroll-area";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 import useUploadStore from "@/features/editor/store/use-upload-store";
-import axios from "axios";
 import { Input } from "./ui/input";
 type ModalUploadProps = {
   type?: string;
@@ -175,14 +174,14 @@ const ModalUpload: React.FC<ModalUploadProps> = ({ type = "all" }) => {
     // Prepare UploadFile object for URL if present
     const urlUploads = videoUrl.trim()
       ? [
-          {
-            id: crypto.randomUUID(),
-            url: videoUrl.trim(),
-            type: "url",
-            status: "pending" as const,
-            progress: 0
-          }
-        ]
+        {
+          id: crypto.randomUUID(),
+          url: videoUrl.trim(),
+          type: "url",
+          status: "pending" as const,
+          progress: 0
+        }
+      ]
       : [];
 
     // Add to pending uploads
@@ -231,11 +230,10 @@ const ModalUpload: React.FC<ModalUploadProps> = ({ type = "all" }) => {
               />
 
               <div
-                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                  isDragOver
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${isDragOver
                     ? "border-primary bg-primary/10"
                     : "border border-border hover:border-muted-foreground/50"
-                }`}
+                  }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}

@@ -5,7 +5,7 @@ import Navbar from "./navbar";
 import useTimelineEvents from "./hooks/use-timeline-events";
 import Scene from "./scene";
 import { SceneRef } from "./scene/scene.types";
-import StateManager, { DESIGN_LOAD } from "@designcombo/state";
+import StateManager from "@designcombo/state";
 import { useEffect, useRef, useState } from "react";
 import {
 	ResizableHandle,
@@ -23,15 +23,14 @@ import useDataState from "./store/use-data-state";
 import { FONTS } from "./data/fonts";
 import FloatingControl from "./control-item/floating-controls/floating-control";
 import { useSceneStore } from "@/store/use-scene-store";
-import { dispatch } from "@designcombo/events";
+import { useVideoProject } from "@/hooks/use-video-projects";
 import MenuListHorizontal from "./menu-list-horizontal";
 import { useIsLargeScreen } from "@/hooks/use-media-query";
 import { ITrackItem } from "@designcombo/types";
 import useLayoutStore from "./store/use-layout-store";
 import ControlItemHorizontal from "./control-item-horizontal";
-import { design } from "./mock";
 
-const LOCALSTORAGE_KEY = "designcombo_project";
+
 
 const stateManager = new StateManager({
 	size: {
@@ -40,11 +39,12 @@ const stateManager = new StateManager({
 	},
 });
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const Editor = ({ tempId, id }: { tempId?: string; id?: string }) => {
-	const [projectName, setProjectName] = useState<string>("Untitled video");
+
+const Editor = ({ id }: { id?: string }) => {
 	useSceneStore();
 	const timelinePanelRef = useRef<ImperativePanelHandle>(null);
+
+	const { data: project } = useVideoProject(id);
 	const sceneRef = useRef<SceneRef>(null);
 	const { timeline, playerRef } = useStore();
 	const { activeIds, trackItemsMap, transitionsMap } = useStore();
@@ -61,51 +61,6 @@ const Editor = ({ tempId, id }: { tempId?: string; id?: string }) => {
 	useTimelineEvents();
 
 	const { setCompactFonts, setFonts } = useDataState();
-
-	// Load design: try localStorage first, fall back to mock data
-	useEffect(() => {
-		try {
-			const saved = localStorage.getItem(LOCALSTORAGE_KEY);
-			if (saved) {
-				const savedDesign = JSON.parse(saved);
-				console.log("Loaded project from localStorage");
-				dispatch(DESIGN_LOAD, { payload: savedDesign });
-				return;
-			}
-		} catch (e) {
-			console.warn("Failed to load from localStorage, using mock data:", e);
-		}
-		dispatch(DESIGN_LOAD, { payload: design });
-	}, []);
-
-	// Auto-save to localStorage on state changes (debounced)
-	useEffect(() => {
-		const saveTimeout = { current: null as ReturnType<typeof setTimeout> | null };
-
-		const saveToLocalStorage = () => {
-			if (saveTimeout.current) clearTimeout(saveTimeout.current);
-			saveTimeout.current = setTimeout(() => {
-				try {
-					const currentDesign = stateManager.toJSON();
-					localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(currentDesign));
-					console.log("Project auto-saved to localStorage");
-				} catch (e) {
-					console.warn("Failed to save to localStorage:", e);
-				}
-			}, 2000);
-		};
-
-		const sub1 = stateManager.subscribeToState(saveToLocalStorage);
-		const sub2 = stateManager.subscribeToAddOrRemoveItems(saveToLocalStorage);
-		const sub3 = stateManager.subscribeToUpdateTrackItem(saveToLocalStorage);
-
-		return () => {
-			if (saveTimeout.current) clearTimeout(saveTimeout.current);
-			sub1?.unsubscribe?.();
-			sub2?.unsubscribe?.();
-			sub3?.unsubscribe?.();
-		};
-	}, []);
 
 	useEffect(() => {
 		setCompactFonts(getCompactFontData(FONTS));
@@ -181,10 +136,8 @@ const Editor = ({ tempId, id }: { tempId?: string; id?: string }) => {
 	return (
 		<div className="flex h-screen w-screen flex-col">
 			<Navbar
-				projectName={projectName}
-				user={null}
+				projectName={project?.title || "Untitled video"}
 				stateManager={stateManager}
-				setProjectName={setProjectName}
 			/>
 			<div className="flex flex-1">
 				{isLargeScreen && (

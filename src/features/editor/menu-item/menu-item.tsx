@@ -3,7 +3,6 @@ import { Transitions } from "./transitions";
 import { Texts } from "./texts";
 import { Audios } from "./audios";
 import { Elements } from "./elements";
-import { Images } from "./images";
 import { Videos } from "./videos";
 import { Captions } from "./captions";
 import { VoiceOver } from "./voice-over";
@@ -32,10 +31,6 @@ const ActiveMenuItem = () => {
 
   if (activeMenuItem === "audios") {
     return <Audios />;
-  }
-
-  if (activeMenuItem === "images") {
-    return <Images />;
   }
 
   if (activeMenuItem === "voiceOver") {

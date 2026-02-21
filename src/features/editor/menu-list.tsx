@@ -38,12 +38,7 @@ const MENU_ITEMS = [
     label: "Captions",
     ariaLabel: "Add and edit captions"
   },
-  {
-    id: "images",
-    icon: Icons.image,
-    label: "Images",
-    ariaLabel: "Add and manage images"
-  },
+
   {
     id: "audios",
     icon: Icons.audio,

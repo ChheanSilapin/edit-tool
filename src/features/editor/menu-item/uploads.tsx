@@ -39,8 +39,7 @@ export const Uploads = () => {
           src: srcVideo
         },
         metadata: {
-          previewUrl:
-            "https://cdn.designcombo.dev/caption_previews/static_preset1.webp"
+          previewUrl: srcVideo
         }
       },
       options: {
@@ -155,10 +154,21 @@ export const Uploads = () => {
                     key={video.id || idx}
                   >
                     <Card
-                      className="w-16 h-16 flex items-center justify-center overflow-hidden relative cursor-pointer"
+                      className="w-16 h-16 flex items-center justify-center overflow-hidden relative cursor-pointer group"
                       onClick={() => handleAddVideo(video)}
                     >
-                      <VideoIcon className="w-8 h-8 text-muted-foreground" />
+                      {video.metadata?.uploadedUrl || video.url ? (
+                        <video
+                          src={video.metadata?.uploadedUrl || video.url}
+                          muted
+                          autoPlay
+                          loop
+                          playsInline
+                          className="h-full w-full object-cover group-hover:opacity-80 transition-opacity"
+                        />
+                      ) : (
+                        <VideoIcon className="w-8 h-8 text-muted-foreground" />
+                      )}
                     </Card>
                     <div className="text-xs text-muted-foreground truncate w-full text-center">
                       {video.file?.name || video.url || "Video"}
@@ -185,10 +195,18 @@ export const Uploads = () => {
                     key={image.id || idx}
                   >
                     <Card
-                      className="w-16 h-16 flex items-center justify-center overflow-hidden relative cursor-pointer"
+                      className="w-16 h-16 flex items-center justify-center overflow-hidden relative cursor-pointer group"
                       onClick={() => handleAddImage(image)}
                     >
-                      <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                      {image.metadata?.uploadedUrl || image.url ? (
+                        <img
+                          src={image.metadata?.uploadedUrl || image.url}
+                          alt="upload"
+                          className="h-full w-full object-cover group-hover:opacity-80 transition-opacity"
+                        />
+                      ) : (
+                        <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                      )}
                     </Card>
                     <div className="text-xs text-muted-foreground truncate w-full text-center">
                       {image.file?.name || image.url || "Image"}

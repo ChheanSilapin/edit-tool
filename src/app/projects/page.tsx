@@ -15,7 +15,8 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Video, LogOut, Loader2, Film } from "lucide-react";
+import { Plus, Video, LogOut, Loader2 } from "lucide-react";
+import { LogoIcons } from "@/components/shared/logos";
 
 function ProjectsContent() {
     const router = useRouter();
@@ -50,7 +51,7 @@ function ProjectsContent() {
             <header className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-md">
                 <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
                     <div className="flex items-center gap-2">
-                        <Film className="h-5 w-5 text-primary" />
+                        <LogoIcons.scenify />
                         <h1 className="text-lg font-semibold text-foreground">
                             Video Projects
                         </h1>

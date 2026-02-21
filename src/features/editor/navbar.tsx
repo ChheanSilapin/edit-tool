@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { dispatch } from "@designcombo/events";
-import { HISTORY_UNDO, HISTORY_REDO, DESIGN_RESIZE } from "@designcombo/state";
+import { HISTORY_UNDO, HISTORY_REDO } from "@designcombo/state";
 import { Icons } from "@/components/shared/icons";
+import Link from "next/link";
 import {
   Popover,
   PopoverContent,
@@ -11,7 +12,6 @@ import {
 import {
   ChevronDown,
   Download,
-  ProportionsIcon,
   ShareIcon
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -22,7 +22,7 @@ import type { IDesign } from "@designcombo/types";
 import { useDownloadState } from "./store/use-download-state";
 import DownloadProgressModal from "./download-progress-modal";
 import AutosizeInput from "@/components/ui/autosize-input";
-import { debounce } from "lodash";
+
 import {
   useIsLargeScreen,
   useIsMediumScreen,
@@ -30,20 +30,21 @@ import {
 } from "@/hooks/use-media-query";
 
 import { LogoIcons } from "@/components/shared/logos";
-import Link from "next/link";
+
 
 export default function Navbar({
-  user,
   stateManager,
-  setProjectName,
   projectName
 }: {
-  user: any | null;
   stateManager: StateManager;
-  setProjectName: (name: string) => void;
   projectName: string;
 }) {
   const [title, setTitle] = useState(projectName);
+
+  // Sync internal title state when projectName prop changes from backend
+  useEffect(() => {
+    setTitle(projectName);
+  }, [projectName]);
   const isLargeScreen = useIsLargeScreen();
   const isMediumScreen = useIsMediumScreen();
   const isSmallScreen = useIsSmallScreen();
@@ -55,22 +56,6 @@ export default function Navbar({
   const handleRedo = () => {
     dispatch(HISTORY_REDO);
   };
-
-  const handleCreateProject = async () => {};
-
-  // Create a debounced function for setting the project name
-  const debouncedSetProjectName = useCallback(
-    debounce((name: string) => {
-      console.log("Debounced setProjectName:", name);
-      setProjectName(name);
-    }, 2000), // 2 seconds delay
-    []
-  );
-
-  // Update the debounced function whenever the title changes
-  useEffect(() => {
-    debouncedSetProjectName(title);
-  }, [title, debouncedSetProjectName]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
@@ -88,7 +73,9 @@ export default function Navbar({
 
       <div className="flex items-center gap-2">
         <div className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-md text-zinc-200">
-          <LogoIcons.scenify />
+          <Link href="/projects">
+            <LogoIcons.scenify />
+          </Link>
         </div>
 
         <div className=" pointer-events-auto flex h-10 items-center px-1.5">
@@ -127,12 +114,7 @@ export default function Navbar({
 
       <div className="flex h-11 items-center justify-end gap-2">
         <div className=" pointer-events-auto flex h-10 items-center gap-2 rounded-md px-2.5">
-          <Link href="https://discord.gg/Jmxsd5f2jp" target="_blank">
-            <Button className="h-7 rounded-lg" variant={"outline"}>
-              <LogoIcons.discord className="w-6 h-6" />
-              <span className="hidden md:block">Join Us</span>
-            </Button>
-          </Link>
+
           <Button
             className="flex h-7 gap-1 border border-border"
             variant="outline"
@@ -223,106 +205,3 @@ const DownloadPopover = ({ stateManager }: { stateManager: StateManager }) => {
   );
 };
 
-interface ResizeOptionProps {
-  label: string;
-  icon: string;
-  value: ResizeValue;
-  description: string;
-}
-
-interface ResizeValue {
-  width: number;
-  height: number;
-  name: string;
-}
-
-const RESIZE_OPTIONS: ResizeOptionProps[] = [
-  {
-    label: "16:9",
-    icon: "landscape",
-    description: "YouTube ads",
-    value: {
-      width: 1920,
-      height: 1080,
-      name: "16:9"
-    }
-  },
-  {
-    label: "9:16",
-    icon: "portrait",
-    description: "TikTok, YouTube Shorts",
-    value: {
-      width: 1080,
-      height: 1920,
-      name: "9:16"
-    }
-  },
-  {
-    label: "1:1",
-    icon: "square",
-    description: "Instagram, Facebook posts",
-    value: {
-      width: 1080,
-      height: 1080,
-      name: "1:1"
-    }
-  }
-];
-
-const ResizeVideo = () => {
-  const handleResize = (options: ResizeValue) => {
-    dispatch(DESIGN_RESIZE, {
-      payload: {
-        ...options
-      }
-    });
-  };
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button className="z-10 h-7 gap-2" variant="outline" size={"sm"}>
-          <ProportionsIcon className="h-4 w-4" />
-          <div>Resize</div>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="z-[250] w-60 px-2.5 py-3">
-        <div className="text-sm">
-          {RESIZE_OPTIONS.map((option, index) => (
-            <ResizeOption
-              key={index}
-              label={option.label}
-              icon={option.icon}
-              value={option.value}
-              handleResize={handleResize}
-              description={option.description}
-            />
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-};
-
-const ResizeOption = ({
-  label,
-  icon,
-  value,
-  description,
-  handleResize
-}: ResizeOptionProps & { handleResize: (payload: ResizeValue) => void }) => {
-  const Icon = Icons[icon as "text"];
-  return (
-    <div
-      onClick={() => handleResize(value)}
-      className="flex cursor-pointer items-center rounded-md p-2 hover:bg-zinc-50/10"
-    >
-      <div className="w-8 text-muted-foreground">
-        <Icon size={20} />
-      </div>
-      <div>
-        <div>{label}</div>
-        <div className="text-xs text-muted-foreground">{description}</div>
-      </div>
-    </div>
-  );
-};
